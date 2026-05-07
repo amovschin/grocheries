@@ -16,7 +16,7 @@
 
   {# ── Filters ───────────────────────────────────────────────── #}
   <section class="filters" aria-label="Filters">
-    <select id="filter-location" class="filter-select" onchange="applyFilters()">
+    <select id="filter-location" class="filter-select">
       <option value="">All locations</option>
       {% set locations = items | map(attribute='location') | select | unique | list %}
       {% for loc in locations | sort %}
@@ -24,14 +24,14 @@
       {% endfor %}
     </select>
 
-    <select id="filter-priority" class="filter-select" onchange="applyFilters()">
+    <select id="filter-priority" class="filter-select">
       <option value="">All priorities</option>
       <option value="1">High</option>
       <option value="2">Medium</option>
       <option value="3">Low</option>
     </select>
 
-    <select id="filter-added-by" class="filter-select" onchange="applyFilters()">
+    <select id="filter-added-by" class="filter-select">
       <option value="">All people</option>
       {% set people = items | map(attribute='added_by') | select | unique | list %}
       {% for person in people | sort %}
@@ -149,17 +149,24 @@
   <script>
     // ── Client-side filtering ────────────────────────────────────
     function applyFilters() {
-      const location = document.getElementById('filter-location').value;
-      const priority = document.getElementById('filter-priority').value;
-      const addedBy  = document.getElementById('filter-added-by').value;
+      const locationFilter = document.getElementById('filter-location').value;
+      const priorityFilter = document.getElementById('filter-priority').value;
+      const addedByFilter  = document.getElementById('filter-added-by').value;
 
       document.querySelectorAll('#item-list .item').forEach(function(item) {
-        const matchLocation = !location || item.dataset.location === location;
-        const matchPriority = !priority || item.dataset.priority === priority;
-        const matchAddedBy  = !addedBy  || item.dataset.addedBy  === addedBy;
+        const matchLocation = !locationFilter || item.dataset.location === locationFilter;
+        const matchPriority = !priorityFilter || item.dataset.priority === priorityFilter;
+        const matchAddedBy  = !addedByFilter  || item.dataset.addedBy  === addedByFilter;
         item.hidden = !(matchLocation && matchPriority && matchAddedBy);
       });
     }
+
+    // ── Filter event listeners ───────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('filter-location').addEventListener('change', applyFilters);
+      document.getElementById('filter-priority').addEventListener('change', applyFilters);
+      document.getElementById('filter-added-by').addEventListener('change', applyFilters);
+    });
 
     // ── WebSocket — reload on mutation broadcast ─────────────────
     (function() {

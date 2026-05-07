@@ -85,6 +85,10 @@ body {
   transition: opacity 0.15s;
 }
 
+.item[hidden] {
+  display: none !important;
+}
+
 .item--checked {
   opacity: 0.55;
 }
