@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     """All runtime configuration values for the application."""
 
     database_url: str = "sqlite:////data/grocheries.db"
+    admin_token: str = "changeme"
 
     class Config:
         env_file = ".env"

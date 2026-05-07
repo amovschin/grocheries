@@ -8,6 +8,7 @@ from app.database import get_db
 from app.services.broadcast import manager
 from app.services.items import (
     create_item,
+    create_list,
     delete_item,
     get_list_or_404,
     toggle_item,
@@ -17,6 +18,22 @@ from app.templates_config import templates
 router = APIRouter()
 
 _RELOAD = {"action": "reload"}
+
+
+@router.get("/new")
+async def new_list_page(request: Request):
+    """Render the new-list creation form."""
+    return templates.TemplateResponse("new.html", {"request": request})
+
+
+@router.post("/lists")
+async def create_list_route(
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Create a new list and redirect to its page."""
+    grocery_list = create_list(name, db)
+    return RedirectResponse(url=f"/list/{grocery_list.id}", status_code=303)
 
 
 @router.get("/list/{list_id}")

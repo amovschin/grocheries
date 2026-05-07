@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import lists, ws
+from app.routers import admin, lists, ws
 from app.templates_config import templates as _templates  # noqa: F401
 
 alembic_cfg = Config("alembic.ini")
@@ -26,6 +26,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+app.include_router(admin.router)
 app.include_router(lists.router)
 app.include_router(ws.router)
 

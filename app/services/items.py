@@ -1,9 +1,20 @@
-"""Business logic for item creation, toggling, and deletion."""
+"""Business logic for list and item creation, toggling, and deletion."""
+
+import uuid
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models import Item, List
+
+
+def create_list(name: str, db: Session) -> List:
+    """Create and persist a new List with a generated UUID."""
+    grocery_list = List(id=str(uuid.uuid4()), name=name)
+    db.add(grocery_list)
+    db.commit()
+    db.refresh(grocery_list)
+    return grocery_list
 
 
 def get_list_or_404(list_id: str, db: Session) -> List:

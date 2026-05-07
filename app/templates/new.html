@@ -1,0 +1,31 @@
+{# Jinja2 template for the new-list creation page. #}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New list — Grocheries</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <header class="page-header">
+    <h1>New list</h1>
+  </header>
+
+  <section class="add-form-section">
+    <form class="add-form" method="post" action="/lists">
+
+      <div class="form-group">
+        <label for="name" class="form-label">List name <span aria-hidden="true">*</span></label>
+        <input id="name" name="name" type="text" class="form-input" required
+               placeholder="e.g. Courses de la semaine" autocomplete="off">
+      </div>
+
+      <button type="submit" class="btn btn--add">Create list</button>
+
+    </form>
+  </section>
+
+</body>
+</html>
