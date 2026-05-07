@@ -11,5 +11,10 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
+    @property
+    def is_sqlite(self) -> bool:
+        """Return True when DATABASE_URL points to a SQLite database."""
+        return self.database_url.startswith("sqlite")
+
 
 settings = Settings()

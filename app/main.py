@@ -3,19 +3,22 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
-from app.database import Base, engine
 from app.routers import lists, ws
 from app.templates_config import templates as _templates  # noqa: F401
+
+alembic_cfg = Config("alembic.ini")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Create all database tables on startup."""
-    Base.metadata.create_all(bind=engine)
+    """Run Alembic migrations to head on startup."""
+    command.upgrade(alembic_cfg, "head")
     yield
 
 

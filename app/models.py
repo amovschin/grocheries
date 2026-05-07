@@ -15,9 +15,9 @@ class List(Base):
     __tablename__ = "list"
 
     id: Mapped[str] = mapped_column(
-        String, primary_key=True, default=lambda: str(uuid.uuid4())
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    name: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
@@ -33,12 +33,14 @@ class Item(Base):
     __tablename__ = "item"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    list_id: Mapped[str] = mapped_column(String, ForeignKey("list.id"), nullable=False)
-    name: Mapped[str] = mapped_column(String, nullable=False)
-    location: Mapped[str | None] = mapped_column(String, nullable=True)
+    list_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("list.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    comment: Mapped[str | None] = mapped_column(String, nullable=True)
-    added_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    added_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
     priority: Mapped[int | None] = mapped_column(Integer, nullable=True)
     checked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(
