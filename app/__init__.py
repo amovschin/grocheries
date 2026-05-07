@@ -1,0 +1,1 @@
+"""Grocheries FastAPI application package."""

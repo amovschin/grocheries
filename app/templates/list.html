@@ -1,0 +1,180 @@
+{# Jinja2 template for the grocery list page. #}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ list.name }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+</head>
+<body>
+
+  <header class="page-header">
+    <h1>{{ list.name }}</h1>
+  </header>
+
+  {# ── Filters ───────────────────────────────────────────────── #}
+  <section class="filters" aria-label="Filters">
+    <select id="filter-location" class="filter-select" onchange="applyFilters()">
+      <option value="">All locations</option>
+      {% set locations = items | map(attribute='location') | select | unique | list %}
+      {% for loc in locations | sort %}
+        <option value="{{ loc }}">{{ loc }}</option>
+      {% endfor %}
+    </select>
+
+    <select id="filter-priority" class="filter-select" onchange="applyFilters()">
+      <option value="">All priorities</option>
+      <option value="1">High</option>
+      <option value="2">Medium</option>
+      <option value="3">Low</option>
+    </select>
+
+    <select id="filter-added-by" class="filter-select" onchange="applyFilters()">
+      <option value="">All people</option>
+      {% set people = items | map(attribute='added_by') | select | unique | list %}
+      {% for person in people | sort %}
+        <option value="{{ person }}">{{ person }}</option>
+      {% endfor %}
+    </select>
+  </section>
+
+  {# ── Item list ─────────────────────────────────────────────── #}
+  <ul class="item-list" id="item-list">
+    {% for item in items | sort(attribute='priority', reverse=False) %}
+    <li class="item{% if item.checked %} item--checked{% endif %}"
+        data-location="{{ item.location or '' }}"
+        data-priority="{{ item.priority or '' }}"
+        data-added-by="{{ item.added_by or '' }}">
+
+      <div class="item__body">
+        <span class="item__name">{{ item.name }}</span>
+
+        <span class="item__meta">
+          {% if item.quantity is not none %}
+            <span class="item__tag">× {{ item.quantity }}</span>
+          {% endif %}
+          {% if item.location %}
+            <span class="item__tag item__tag--location">{{ item.location }}</span>
+          {% endif %}
+          {% if item.priority %}
+            <span class="item__tag item__tag--priority item__tag--priority-{{ item.priority }}">
+              {% if item.priority == 1 %}High{% elif item.priority == 2 %}Medium{% else %}Low{% endif %}
+            </span>
+          {% endif %}
+          {% if item.added_by %}
+            <span class="item__tag item__tag--person">{{ item.added_by }}</span>
+          {% endif %}
+          {% if item.comment %}
+            <span class="item__comment">{{ item.comment }}</span>
+          {% endif %}
+        </span>
+      </div>
+
+      <div class="item__actions">
+        <button class="btn btn--toggle"
+                hx-patch="/list/{{ list.id }}/items/{{ item.id }}/toggle"
+                hx-target="body"
+                hx-swap="outerHTML"
+                aria-label="{{ 'Uncheck' if item.checked else 'Check' }} {{ item.name }}">
+          {{ '✓' if item.checked else '○' }}
+        </button>
+        <button class="btn btn--delete"
+                hx-delete="/list/{{ list.id }}/items/{{ item.id }}"
+                hx-confirm="Delete this item?"
+                hx-target="body"
+                hx-swap="outerHTML"
+                aria-label="Delete {{ item.name }}">
+          ✕
+        </button>
+      </div>
+    </li>
+    {% else %}
+    <li class="item-list__empty">No items yet. Add one below.</li>
+    {% endfor %}
+  </ul>
+
+  {# ── Add item form ─────────────────────────────────────────── #}
+  <section class="add-form-section">
+    <h2 class="add-form-section__title">Add an item</h2>
+    <form class="add-form" method="post" action="/list/{{ list.id }}/items">
+
+      <div class="form-group">
+        <label for="name" class="form-label">Item name <span aria-hidden="true">*</span></label>
+        <input id="name" name="name" type="text" class="form-input" required
+               placeholder="e.g. Apples" autocomplete="off">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="location" class="form-label">Location</label>
+          <input id="location" name="location" type="text" class="form-input"
+                 placeholder="e.g. Produce" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="quantity" class="form-label">Quantity</label>
+          <input id="quantity" name="quantity" type="number" class="form-input"
+                 placeholder="e.g. 3" min="1">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="added_by" class="form-label">Added by</label>
+          <input id="added_by" name="added_by" type="text" class="form-input"
+                 placeholder="Your name" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="priority" class="form-label">Priority</label>
+          <select id="priority" name="priority" class="form-input">
+            <option value="">— none —</option>
+            <option value="1">High</option>
+            <option value="2">Medium</option>
+            <option value="3">Low</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="comment" class="form-label">Comment</label>
+        <input id="comment" name="comment" type="text" class="form-input"
+               placeholder="Optional note" autocomplete="off">
+      </div>
+
+      <button type="submit" class="btn btn--add">Add item</button>
+    </form>
+  </section>
+
+  <script>
+    // ── Client-side filtering ────────────────────────────────────
+    function applyFilters() {
+      const location = document.getElementById('filter-location').value;
+      const priority = document.getElementById('filter-priority').value;
+      const addedBy  = document.getElementById('filter-added-by').value;
+
+      document.querySelectorAll('#item-list .item').forEach(function(item) {
+        const matchLocation = !location || item.dataset.location === location;
+        const matchPriority = !priority || item.dataset.priority === priority;
+        const matchAddedBy  = !addedBy  || item.dataset.addedBy  === addedBy;
+        item.hidden = !(matchLocation && matchPriority && matchAddedBy);
+      });
+    }
+
+    // ── WebSocket — reload on mutation broadcast ─────────────────
+    (function() {
+      const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const socket = new WebSocket(wsProtocol + '//' + location.host + '/ws/{{ list.id }}');
+      socket.addEventListener('message', function(event) {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.action === 'reload') {
+            window.location.reload();
+          }
+        } catch (_) {}
+      });
+    })();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+{
+  "name": "Grocheries",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+      "ghcr.io/devcontainers/features/git:1": {},
+      "ghcr.io/devcontainers/features/node:1": {
+          "version": "lts"
+      }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.debugpy",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/grocheries,type=bind",
+  "workspaceFolder": "/workspaces/grocheries",
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt 2>/dev/null || true && npm install -g @anthropic-ai/claude-code",
+  "runArgs": [
+    "--memory=4g",
+    "--cpus=2",
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges"
+  ],
+  "remoteEnv": {
+    "PYTHONPATH": "/workspaces/grocheries"
+  }
+}
