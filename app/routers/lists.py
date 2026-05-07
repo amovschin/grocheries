@@ -1,10 +1,13 @@
 """HTTP route handlers for grocery list operations."""
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
+from app.models import List
 from app.services.broadcast import manager
 from app.services.items import (
     create_item,
@@ -18,6 +21,19 @@ from app.templates_config import templates
 router = APIRouter()
 
 _RELOAD = {"action": "reload"}
+
+
+@router.get("/")
+async def index(request: Request, token: str = "", db: Session = Depends(get_db)):
+    """Render the admin home page listing all grocery lists."""
+    if token != settings.admin_token:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    all_lists = db.query(List).order_by(desc(List.created_at)).all()
+    base_url = str(request.base_url).rstrip("/")
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request, "lists": all_lists, "base_url": base_url},
+    )
 
 
 @router.get("/new")

@@ -1,0 +1,41 @@
+{# Jinja2 template for the admin home page listing all grocery lists. #}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grocheries</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <header class="page-header">
+    <h1>Grocheries</h1>
+  </header>
+
+  <section class="add-form-section" style="margin-top:1rem;">
+    <a href="/new" class="btn btn--add" style="display:flex;text-decoration:none;justify-content:center;">
+      + Create a new list
+    </a>
+  </section>
+
+  <ul class="item-list">
+    {% for grocery_list in lists %}
+    <li class="item" style="flex-direction:column;align-items:flex-start;gap:0.25rem;">
+      <a href="/list/{{ grocery_list.id }}" class="item__name" style="text-decoration:none;color:inherit;">
+        {{ grocery_list.name }}
+      </a>
+      <span class="item__comment">
+        {{ base_url }}/list/{{ grocery_list.id }}
+      </span>
+      <span class="item__tag">
+        {{ grocery_list.created_at.strftime('%d/%m/%Y') }}
+      </span>
+    </li>
+    {% else %}
+    <li class="item-list__empty">No lists yet.</li>
+    {% endfor %}
+  </ul>
+
+</body>
+</html>
