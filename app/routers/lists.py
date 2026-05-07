@@ -13,7 +13,9 @@ from app.services.items import (
     create_item,
     create_list,
     delete_item,
+    delete_list,
     get_list_or_404,
+    rename_list,
     toggle_item,
 )
 from app.templates_config import templates
@@ -32,7 +34,7 @@ async def index(request: Request, token: str = "", db: Session = Depends(get_db)
     base_url = str(request.base_url).rstrip("/")
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "lists": all_lists, "base_url": base_url},
+        {"request": request, "lists": all_lists, "base_url": base_url, "token": token},
     )
 
 
@@ -40,6 +42,60 @@ async def index(request: Request, token: str = "", db: Session = Depends(get_db)
 async def new_list_page(request: Request):
     """Render the new-list creation form."""
     return templates.TemplateResponse("new.html", {"request": request})
+
+
+@router.delete("/lists/{list_id}")
+async def delete_list_route(
+    list_id: str,
+    token: str = "",
+    db: Session = Depends(get_db),
+):
+    """Delete a list and all its items, then redirect to the home page."""
+    if token != settings.admin_token:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    delete_list(list_id, db)
+    return RedirectResponse(url=f"/?token={token}", status_code=303)
+
+
+@router.patch("/lists/{list_id}")
+async def rename_list_route(
+    list_id: str,
+    token: str = "",
+    new_name: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Rename a list, then redirect to the home page."""
+    if token != settings.admin_token:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    rename_list(list_id, new_name, db)
+    return RedirectResponse(url=f"/?token={token}", status_code=303)
+
+
+@router.post("/lists/{list_id}/delete")
+async def delete_list_post(
+    list_id: str,
+    token: str = "",
+    db: Session = Depends(get_db),
+):
+    """Delete a list via browser form POST, then redirect to the home page."""
+    if token != settings.admin_token:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    delete_list(list_id, db)
+    return RedirectResponse(url=f"/?token={token}", status_code=303)
+
+
+@router.post("/lists/{list_id}/rename")
+async def rename_list_post(
+    list_id: str,
+    token: str = "",
+    new_name: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Rename a list via browser form POST, then redirect to the home page."""
+    if token != settings.admin_token:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    rename_list(list_id, new_name, db)
+    return RedirectResponse(url=f"/?token={token}", status_code=303)
 
 
 @router.post("/lists")

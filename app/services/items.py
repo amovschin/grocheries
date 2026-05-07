@@ -52,6 +52,22 @@ def create_item(
     return item
 
 
+def delete_list(list_id: str, db: Session) -> None:
+    """Permanently delete a list and all its items from the database."""
+    grocery_list = get_list_or_404(list_id, db)
+    db.delete(grocery_list)
+    db.commit()
+
+
+def rename_list(list_id: str, new_name: str, db: Session) -> List:
+    """Update the name of an existing list and persist the change."""
+    grocery_list = get_list_or_404(list_id, db)
+    grocery_list.name = new_name
+    db.commit()
+    db.refresh(grocery_list)
+    return grocery_list
+
+
 def toggle_item(item_id: int, list_id: str, db: Session) -> Item:
     """Flip the checked state of an item and persist the change."""
     item = db.get(Item, item_id)

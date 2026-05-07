@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Grocheries</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </head>
 <body>
 
@@ -21,16 +22,28 @@
 
   <ul class="item-list">
     {% for grocery_list in lists %}
-    <li class="item" style="flex-direction:column;align-items:flex-start;gap:0.25rem;">
-      <a href="/list/{{ grocery_list.id }}" class="item__name" style="text-decoration:none;color:inherit;">
-        {{ grocery_list.name }}
-      </a>
-      <span class="item__comment">
-        {{ base_url }}/list/{{ grocery_list.id }}
-      </span>
-      <span class="item__tag">
-        {{ grocery_list.created_at.strftime('%d/%m/%Y') }}
-      </span>
+    <li class="item" style="flex-direction:column;align-items:flex-start;gap:0.5rem;">
+
+      <div style="display:flex;align-items:center;gap:0.5rem;width:100%;">
+        <a href="/list/{{ grocery_list.id }}" class="item__name" style="flex:1;text-decoration:none;color:inherit;">
+          {{ grocery_list.name }}
+        </a>
+        <form method="post" action="/lists/{{ grocery_list.id }}/delete?token={{ token }}"
+              onsubmit="return confirm('Delete this list and all its items?')">
+          <button type="submit" class="btn btn--delete" aria-label="Delete {{ grocery_list.name }}">✕</button>
+        </form>
+      </div>
+
+      <span class="item__comment">{{ base_url }}/list/{{ grocery_list.id }}</span>
+      <span class="item__tag">{{ grocery_list.created_at.strftime('%d/%m/%Y') }}</span>
+
+      <form method="post" action="/lists/{{ grocery_list.id }}/rename?token={{ token }}"
+            style="display:flex;gap:0.4rem;width:100%;">
+        <input type="text" name="new_name" value="{{ grocery_list.name }}"
+               class="form-input" style="flex:1;" required>
+        <button type="submit" class="btn btn--toggle" style="white-space:nowrap;">Rename</button>
+      </form>
+
     </li>
     {% else %}
     <li class="item-list__empty">No lists yet.</li>
