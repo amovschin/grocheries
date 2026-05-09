@@ -76,7 +76,8 @@ Filters are combinable. An item must match all active filters
 to be visible. Filter values are normalized (case-insensitive, 
 leading/trailing whitespace ignored) to avoid duplicates.
 Filtering is client-side, no server round-trip needed.
-Filters remain active after item toggle/check operations.
+Filter and sort state persists across page reloads and item 
+toggle/check/delete operations.
 
 ### Sorting
 Users can sort items by: name, date added, location, priority.

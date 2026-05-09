@@ -158,6 +158,12 @@
   </section>
 
   <script>
+    // ── Namespace (survives HTMX script re-execution) ────────────
+    window.grocheries = window.grocheries || {};
+    window.grocheries.sortField     = window.grocheries.sortField     || 'priority';
+    window.grocheries.sortDir       = window.grocheries.sortDir       || 'asc';
+    window.grocheries.SORT_DEFAULTS = window.grocheries.SORT_DEFAULTS || { name: 'asc', date: 'desc', location: 'asc', priority: 'asc' };
+
     // ── Client-side filtering ────────────────────────────────────
     function applyFilters() {
       const locationFilter = document.getElementById('filter-location').value;
@@ -173,24 +179,18 @@
     }
 
     // ── Sort state ───────────────────────────────────────────────
-    let sortField = 'priority';
-    let sortDir   = 'asc';
-    const SORT_DEFAULTS = { name: 'asc', date: 'desc', location: 'asc', priority: 'asc' };
 
     function saveFilterState() {
       sessionStorage.setItem('grocheries_filters', JSON.stringify({
         location:  document.getElementById('filter-location').value,
         priority:  document.getElementById('filter-priority').value,
         addedBy:   document.getElementById('filter-added-by').value,
-        sortField: sortField,
-        sortDir:   sortDir,
+        sortField: window.grocheries.sortField,
+        sortDir:   window.grocheries.sortDir,
       }));
-      sessionStorage.setItem('grocheries_filters_pending', '1');
     }
 
     function restoreFilterState() {
-      if (!sessionStorage.getItem('grocheries_filters_pending')) return;
-      sessionStorage.removeItem('grocheries_filters_pending');
       const stored = sessionStorage.getItem('grocheries_filters');
       if (!stored) return;
       try {
@@ -198,8 +198,8 @@
         document.getElementById('filter-location').value = state.location || '';
         document.getElementById('filter-priority').value = state.priority || '';
         document.getElementById('filter-added-by').value = state.addedBy || '';
-        sortField = state.sortField || 'priority';
-        sortDir   = state.sortDir   || 'asc';
+        window.grocheries.sortField = state.sortField || 'priority';
+        window.grocheries.sortDir   = state.sortDir   || 'asc';
         applyFilters();
         sortItems();
       } catch (_) {}
@@ -208,16 +208,16 @@
     // ── Client-side sorting ──────────────────────────────────────
     function updateSortButtons() {
       document.querySelectorAll('.sort-btn').forEach(function(btn) {
-        const active = btn.dataset.field === sortField;
+        const active = btn.dataset.field === window.grocheries.sortField;
         btn.classList.toggle('sort-btn--active', active);
-        btn.textContent = btn.dataset.label + (active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '');
+        btn.textContent = btn.dataset.label + (active ? (window.grocheries.sortDir === 'asc' ? ' ↑' : ' ↓') : '');
       });
     }
 
     function sortItems() {
       const list     = document.getElementById('item-list');
       const allItems = Array.from(list.querySelectorAll('.item'));
-      const dir      = sortDir === 'asc' ? 1 : -1;
+      const dir      = window.grocheries.sortDir === 'asc' ? 1 : -1;
 
       allItems.sort(function(a, b) {
         const aChecked = a.classList.contains('item--checked') ? 1 : 0;
@@ -225,11 +225,11 @@
         if (aChecked !== bChecked) return aChecked - bChecked;
 
         let cmp = 0;
-        if (sortField === 'name') {
+        if (window.grocheries.sortField === 'name') {
           cmp = a.dataset.name.toLowerCase().localeCompare(b.dataset.name.toLowerCase());
-        } else if (sortField === 'date') {
+        } else if (window.grocheries.sortField === 'date') {
           cmp = parseFloat(a.dataset.date) - parseFloat(b.dataset.date);
-        } else if (sortField === 'location') {
+        } else if (window.grocheries.sortField === 'location') {
           const aLoc = a.dataset.location.toLowerCase();
           const bLoc = b.dataset.location.toLowerCase();
           if (!aLoc && bLoc) return 1;
@@ -251,21 +251,22 @@
 
     function handleSortClick(event) {
       const field = event.currentTarget.dataset.field;
-      if (field === sortField) {
-        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      if (field === window.grocheries.sortField) {
+        window.grocheries.sortDir = window.grocheries.sortDir === 'asc' ? 'desc' : 'asc';
       } else {
-        sortField = field;
-        sortDir   = SORT_DEFAULTS[field];
+        window.grocheries.sortField = field;
+        window.grocheries.sortDir   = window.grocheries.SORT_DEFAULTS[field];
       }
       sortItems();
+      saveFilterState();
     }
 
     // ── Filter & sort event listeners ────────────────────────────
     // Attached directly (script is at end of body, DOM is ready) so that
     // they are re-bound when HTMX re-executes the script after a body swap.
-    document.getElementById('filter-location').addEventListener('change', applyFilters);
-    document.getElementById('filter-priority').addEventListener('change', applyFilters);
-    document.getElementById('filter-added-by').addEventListener('change', applyFilters);
+    document.getElementById('filter-location').addEventListener('change', function() { applyFilters(); saveFilterState(); });
+    document.getElementById('filter-priority').addEventListener('change', function() { applyFilters(); saveFilterState(); });
+    document.getElementById('filter-added-by').addEventListener('change', function() { applyFilters(); saveFilterState(); });
     document.querySelectorAll('.sort-btn').forEach(function(btn) {
       btn.addEventListener('click', handleSortClick);
     });
@@ -284,15 +285,13 @@
     document.addEventListener('htmx:afterSwap', sortItems);
 
     // ── Per-tab identity for WebSocket dedup ─────────────────────
-    const tabId = (function() {
-      const stored = sessionStorage.getItem('grocheries_tab_id');
-      if (stored) return stored;
-      const id = Math.random().toString(36).slice(2);
-      sessionStorage.setItem('grocheries_tab_id', id);
-      return id;
-    }());
+    if (!window.grocheries.tabId) {
+      const storedTabId = sessionStorage.getItem('grocheries_tab_id');
+      window.grocheries.tabId = storedTabId || Math.random().toString(36).slice(2);
+      if (!storedTabId) sessionStorage.setItem('grocheries_tab_id', window.grocheries.tabId);
+    }
     document.addEventListener('htmx:configRequest', function(event) {
-      event.detail.headers['X-Tab-Id'] = tabId;
+      event.detail.headers['X-Tab-Id'] = window.grocheries.tabId;
     });
 
     // ── WebSocket — reload on mutation broadcast ─────────────────
@@ -303,7 +302,7 @@
         try {
           const data = JSON.parse(event.data);
           if (data.action === 'reload') {
-            if (data.tab_id !== tabId) {
+            if (data.tab_id !== window.grocheries.tabId) {
               saveFilterState();
               window.location.reload();
             }
