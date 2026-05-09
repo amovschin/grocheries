@@ -139,19 +139,29 @@ async def add_item(
 
 @router.patch("/list/{list_id}/items/{item_id}/toggle")
 async def toggle_item_route(
-    list_id: str, item_id: int, db: Session = Depends(get_db)
+    list_id: str, item_id: int, request: Request, db: Session = Depends(get_db)
 ):
-    """Toggle an item's checked state and broadcast a reload event."""
+    """Toggle an item's checked state, broadcast a reload, and return updated list HTML."""
     toggle_item(item_id, list_id, db)
-    await manager.broadcast(list_id, _RELOAD)
-    return RedirectResponse(url=f"/list/{list_id}", status_code=303)
+    tab_id = request.headers.get("X-Tab-Id", "")
+    await manager.broadcast(list_id, {"action": "reload", "tab_id": tab_id})
+    grocery_list = get_list_or_404(list_id, db)
+    return templates.TemplateResponse(
+        "list.html",
+        {"request": request, "list": grocery_list, "items": grocery_list.items},
+    )
 
 
 @router.delete("/list/{list_id}/items/{item_id}")
 async def delete_item_route(
-    list_id: str, item_id: int, db: Session = Depends(get_db)
+    list_id: str, item_id: int, request: Request, db: Session = Depends(get_db)
 ):
-    """Delete an item from the list and broadcast a reload event."""
+    """Delete an item, broadcast a reload, and return updated list HTML."""
     delete_item(item_id, list_id, db)
-    await manager.broadcast(list_id, _RELOAD)
-    return RedirectResponse(url=f"/list/{list_id}", status_code=303)
+    tab_id = request.headers.get("X-Tab-Id", "")
+    await manager.broadcast(list_id, {"action": "reload", "tab_id": tab_id})
+    grocery_list = get_list_or_404(list_id, db)
+    return templates.TemplateResponse(
+        "list.html",
+        {"request": request, "list": grocery_list, "items": grocery_list.items},
+    )

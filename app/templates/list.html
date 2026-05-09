@@ -195,6 +195,25 @@
     // ── Persist filters across add-item form submission ──────────
     document.querySelector('.add-form').addEventListener('submit', saveFilterState);
 
+    // ── Persist filters across HTMX body swaps ───────────────────
+    document.addEventListener('htmx:beforeRequest', saveFilterState);
+    document.addEventListener('htmx:afterSwap', function() {
+      restoreFilterState();
+      applyFilters();
+    });
+
+    // ── Per-tab identity for WebSocket dedup ─────────────────────
+    const tabId = (function() {
+      const stored = sessionStorage.getItem('grocheries_tab_id');
+      if (stored) return stored;
+      const id = Math.random().toString(36).slice(2);
+      sessionStorage.setItem('grocheries_tab_id', id);
+      return id;
+    }());
+    document.addEventListener('htmx:configRequest', function(event) {
+      event.detail.headers['X-Tab-Id'] = tabId;
+    });
+
     // ── WebSocket — reload on mutation broadcast ─────────────────
     (function() {
       const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -203,8 +222,10 @@
         try {
           const data = JSON.parse(event.data);
           if (data.action === 'reload') {
-            saveFilterState();
-            window.location.reload();
+            if (data.tab_id !== tabId) {
+              saveFilterState();
+              window.location.reload();
+            }
           }
         } catch (_) {}
       });
