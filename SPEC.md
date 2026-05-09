@@ -55,6 +55,13 @@ list in real time, accessible via a secret link from a smartphone.
 2. **Check an item**: toggle checked/unchecked
 3. **Delete an item**: permanent deletion with confirmation
 
+### List management (admin only)
+Accessible via `/?token={ADMIN_TOKEN}`:
+- **View all lists**: home page shows all lists with shareable URLs
+- **Create a list**: form at `/new`, no token required
+- **Rename a list**: inline form on the home page
+- **Delete a list**: button on the home page, deletes all items too
+
 ### Filtering
 Users can filter the item list by:
 - **location** — dropdown of distinct locations present in the list
@@ -81,7 +88,12 @@ no server round-trip needed.
 | PATCH | `/list/{list_id}/items/{item_id}/toggle` | Toggle checked |
 | DELETE | `/list/{list_id}/items/{item_id}` | Delete an item |
 | WS | `/ws/{list_id}` | WebSocket connection |
-
+| GET    | `/`                                  | Admin home page (token required) |
+| GET    | `/new`                               | List creation form |
+| POST   | `/lists`                             | Create a new list |
+| POST   | `/lists/{list_id}/rename`            | Rename a list (token required) |
+| POST   | `/lists/{list_id}/delete`            | Delete a list (token required) |
+| POST   | `/admin/lists`                       | Create a list via API (token required) |
 ---
 
 ## Technical constraints
@@ -95,28 +107,50 @@ no server round-trip needed.
 ---
 
 ## Expected file structure
-grocheries/
+ggrocheries/
 ├── app/
-│   ├── main.py           # FastAPI entry point
-│   ├── models.py         # SQLAlchemy models
-│   ├── database.py       # SQLite connection
+│   ├── main.py               # FastAPI entry point
+│   ├── config.py             # Settings (DATABASE_URL, ADMIN_TOKEN)
+│   ├── database.py           # SQLite/PostgreSQL connection
+│   ├── models.py             # SQLAlchemy models
+│   ├── templates_config.py   # Shared Jinja2Templates instance
 │   ├── routers/
-│   │   ├── lists.py      # HTTP routes
-│   │   └── ws.py         # WebSocket handler
+│   │   ├── lists.py          # HTTP routes
+│   │   ├── admin.py          # Admin routes (token protected)
+│   │   └── ws.py             # WebSocket handler
+│   ├── services/
+│   │   ├── items.py          # Business logic
+│   │   └── broadcast.py      # WebSocket ConnectionManager
 │   ├── templates/
-│   │   └── list.html     # Jinja2 template
+│   │   ├── list.html         # List page
+│   │   ├── index.html        # Admin home page
+│   │   └── new.html          # List creation form
 │   └── static/
-│       └── style.css     # Mobile-first CSS
-├── data/                 # Mounted Docker volume (SQLite file lives here)
+│       └── style.css         # Mobile-first CSS
+├── alembic/                  # Database migrations
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions/
+│       └── 9591bcc213dc_initial_schema.py
+├── alembic.ini
+├── data/                     # SQLite volume (dev only)
+├── scripts/
+│   └── seed.py               # Dev database seeding
 ├── Dockerfile
 ├── docker-compose.yml
+├── requirements.txt
+├── CLAUDE.md
 └── SPEC.md
+
 
 ---
 
 ## Out of scope (for now)
 
-- List creation via the UI (UUID is created manually)
+- User authentication (currently using secret link + admin token)
+- Edit history / audit log
+- Push notifications
+- Multiple lists per user / list ownership
 - Edit history / audit log
 - Push notifications
 - User authentication
