@@ -161,12 +161,33 @@
       });
     }
 
+    function saveFilterState() {
+      sessionStorage.setItem('grocheries_filters', JSON.stringify({
+        location: document.getElementById('filter-location').value,
+        priority: document.getElementById('filter-priority').value,
+        addedBy: document.getElementById('filter-added-by').value,
+      }));
+    }
+
+    function restoreFilterState() {
+      const stored = sessionStorage.getItem('grocheries_filters');
+      if (!stored) return;
+      try {
+        const state = JSON.parse(stored);
+        document.getElementById('filter-location').value = state.location || '';
+        document.getElementById('filter-priority').value = state.priority || '';
+        document.getElementById('filter-added-by').value = state.addedBy || '';
+        applyFilters();
+      } catch (_) {}
+    }
+
     // ── Filter event listeners ───────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function() {
-      document.getElementById('filter-location').addEventListener('change', applyFilters);
-      document.getElementById('filter-priority').addEventListener('change', applyFilters);
-      document.getElementById('filter-added-by').addEventListener('change', applyFilters);
-    });
+    // Attached directly (script is at end of body, DOM is ready) so that
+    // they are re-bound when HTMX re-executes the script after a body swap.
+    document.getElementById('filter-location').addEventListener('change', applyFilters);
+    document.getElementById('filter-priority').addEventListener('change', applyFilters);
+    document.getElementById('filter-added-by').addEventListener('change', applyFilters);
+    restoreFilterState();
 
     // ── WebSocket — reload on mutation broadcast ─────────────────
     (function() {
@@ -176,6 +197,7 @@
         try {
           const data = JSON.parse(event.data);
           if (data.action === 'reload') {
+            saveFilterState();
             window.location.reload();
           }
         } catch (_) {}
