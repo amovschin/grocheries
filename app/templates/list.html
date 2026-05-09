@@ -42,7 +42,7 @@
 
   {# ── Item list ─────────────────────────────────────────────── #}
   <ul class="item-list" id="item-list">
-    {% for item in items | sort(attribute='priority', reverse=False) %}
+    {% for item in items | sort(attribute='priority', reverse=False) | sort(attribute='checked', reverse=False) %}
     <li class="item{% if item.checked %} item--checked{% endif %}"
         data-location="{{ item.location or '' }}"
         data-priority="{{ item.priority or '' }}"
