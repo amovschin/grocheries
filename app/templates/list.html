@@ -167,9 +167,12 @@
         priority: document.getElementById('filter-priority').value,
         addedBy: document.getElementById('filter-added-by').value,
       }));
+      sessionStorage.setItem('grocheries_filters_pending', '1');
     }
 
     function restoreFilterState() {
+      if (!sessionStorage.getItem('grocheries_filters_pending')) return;
+      sessionStorage.removeItem('grocheries_filters_pending');
       const stored = sessionStorage.getItem('grocheries_filters');
       if (!stored) return;
       try {
@@ -188,6 +191,9 @@
     document.getElementById('filter-priority').addEventListener('change', applyFilters);
     document.getElementById('filter-added-by').addEventListener('change', applyFilters);
     restoreFilterState();
+
+    // ── Persist filters across add-item form submission ──────────
+    document.querySelector('.add-form').addEventListener('submit', saveFilterState);
 
     // ── WebSocket — reload on mutation broadcast ─────────────────
     (function() {
