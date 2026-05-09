@@ -66,18 +66,19 @@ Accessible via `/?token={ADMIN_TOKEN}`:
 
 ### Filtering
 Users can filter the item list by:
-- **location** — multi-select of distinct locations present 
+- **location** — checkbox group of distinct locations present 
   in the list, including "(empty)" for items with no location
-- **priority** — multi-select: high / medium / low / (empty)
-- **added_by** — multi-select of distinct names present in 
+- **priority** — checkbox group: High / Medium / Low / (empty)
+- **added_by** — checkbox group of distinct names present in 
   the list, including "(empty)" for items with no added_by
 
-Filters are combinable. An item must match all active filters 
-to be visible. Filter values are normalized (case-insensitive, 
-leading/trailing whitespace ignored) to avoid duplicates.
+Filters are combinable: AND logic across fields, OR within a field.
+An item is visible only if it matches all active filter groups.
+No checkboxes checked = no filter (show all).
+Filter values are normalized (trim + lowercase) to avoid duplicates.
+Filter and sort state persists across page reloads and HTMX swaps.
 Filtering is client-side, no server round-trip needed.
-Filter and sort state persists across page reloads and item 
-toggle/check/delete operations.
+Filter groups are collapsed by default on page load.
 
 ### Sorting
 Users can sort items by: name, date added, location, priority.
@@ -88,10 +89,13 @@ Each sort criterion has an intuitive default direction:
 - priority: High → Low (1 → 3)
 
 Users can toggle the sort direction (ascending/descending) 
-for any criterion by clicking the active sort button again.
+by clicking the active sort button again.
+Items with no value for the sort field always appear last.
 Checked items always appear last regardless of sort.
+Sort state persists across page reloads and HTMX swaps.
 Sorting is client-side.
-Default sort: priority ascending (High first), checked items last.
+Default sort on page load: priority ascending (High first), 
+checked items last.
 
 ### Real-time
 - WebSocket connection to `/ws/{list_id}` on page load

@@ -16,15 +16,15 @@
 
   {# ── Filters ───────────────────────────────────────────────── #}
   <section class="filters" aria-label="Filters">
-    <details class="filter-group" id="fg-location" open>
+    <details class="filter-group" id="fg-location">
       <summary class="filter-group__label">Location</summary>
       <div class="filter-group__options" id="fo-location"></div>
     </details>
-    <details class="filter-group" id="fg-priority" open>
+    <details class="filter-group" id="fg-priority">
       <summary class="filter-group__label">Priority</summary>
       <div class="filter-group__options" id="fo-priority"></div>
     </details>
-    <details class="filter-group" id="fg-added-by" open>
+    <details class="filter-group" id="fg-added-by">
       <summary class="filter-group__label">Added by</summary>
       <div class="filter-group__options" id="fo-added-by"></div>
     </details>
@@ -178,7 +178,6 @@
       const details = container.closest('details');
       if (details) {
         if (options.length > 5) details.removeAttribute('open');
-        else details.setAttribute('open', '');
       }
     }
 
