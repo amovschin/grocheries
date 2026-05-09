@@ -52,8 +52,10 @@ list in real time, accessible via a secret link from a smartphone.
 ### User actions
 1. **Add an item**: form with name (required), location, quantity,
    comment, added_by, priority
-2. **Check an item**: toggle checked/unchecked
-3. **Delete an item**: permanent deletion with confirmation
+2. **Check an item**: toggle checked/unchecked. Checked items 
+   always appear at the bottom of the list.
+3. **Edit an item**: modify any field of an existing item
+4. **Delete an item**: permanent deletion with confirmation
 
 ### List management (admin only)
 Accessible via `/?token={ADMIN_TOKEN}`:
@@ -64,12 +66,22 @@ Accessible via `/?token={ADMIN_TOKEN}`:
 
 ### Filtering
 Users can filter the item list by:
-- **location** — dropdown of distinct locations present in the list
-- **priority** — dropdown: all / high / medium / low
-- **added_by** — dropdown of distinct names present in the list
+- **location** — multi-select of distinct locations present 
+  in the list, including "(empty)" for items with no location
+- **priority** — multi-select: high / medium / low / (empty)
+- **added_by** — multi-select of distinct names present in 
+  the list, including "(empty)" for items with no added_by
 
-Filters are combinable. Filtering is client-side (HTMX or plain JS),
-no server round-trip needed.
+Filters are combinable. An item must match all active filters 
+to be visible. Filter values are normalized (case-insensitive, 
+leading/trailing whitespace ignored) to avoid duplicates.
+Filtering is client-side, no server round-trip needed.
+Filters remain active after item toggle/check operations.
+
+### Sorting
+Users can sort items by: name, date added, location, priority.
+Default sort: priority ascending, checked items last.
+Sorting is client-side.
 
 ### Real-time
 - WebSocket connection to `/ws/{list_id}` on page load
@@ -94,6 +106,8 @@ no server round-trip needed.
 | POST   | `/lists/{list_id}/rename`            | Rename a list (token required) |
 | POST   | `/lists/{list_id}/delete`            | Delete a list (token required) |
 | POST   | `/admin/lists`                       | Create a list via API (token required) |
+| PATCH  | `/list/{list_id}/items/{item_id}` | Edit an item |
+
 ---
 
 ## Technical constraints
