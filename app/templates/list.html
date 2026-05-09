@@ -16,29 +16,18 @@
 
   {# ── Filters ───────────────────────────────────────────────── #}
   <section class="filters" aria-label="Filters">
-    <select id="filter-location" class="filter-select">
-      <option value="">All locations</option>
-      {% set locations = items | map(attribute='location') | select | unique | list %}
-      {% for loc in locations | sort %}
-        <option value="{{ loc }}">{{ loc }}</option>
-      {% endfor %}
-    </select>
-
-    <select id="filter-priority" class="filter-select">
-      <option value="">All priorities</option>
-      <option value="1">High</option>
-      <option value="2">Medium</option>
-      <option value="3">Low</option>
-    </select>
-
-    <select id="filter-added-by" class="filter-select">
-      <option value="">All people</option>
-      {% set people = items | map(attribute='added_by') | select | unique | list %}
-      {% for person in people | sort %}
-        <option value="{{ person }}">{{ person }}</option>
-      {% endfor %}
-    </select>
-
+    <details class="filter-group" id="fg-location" open>
+      <summary class="filter-group__label">Location</summary>
+      <div class="filter-group__options" id="fo-location"></div>
+    </details>
+    <details class="filter-group" id="fg-priority" open>
+      <summary class="filter-group__label">Priority</summary>
+      <div class="filter-group__options" id="fo-priority"></div>
+    </details>
+    <details class="filter-group" id="fg-added-by" open>
+      <summary class="filter-group__label">Added by</summary>
+      <div class="filter-group__options" id="fo-added-by"></div>
+    </details>
   </section>
 
   {# ── Sort bar ──────────────────────────────────────────────── #}
@@ -164,27 +153,123 @@
     window.grocheries.sortDir       = window.grocheries.sortDir       || 'asc';
     window.grocheries.SORT_DEFAULTS = window.grocheries.SORT_DEFAULTS || { name: 'asc', date: 'desc', location: 'asc', priority: 'asc' };
 
+    // ── Normalize helper ─────────────────────────────────────────
+    function norm(str) {
+      return (str || '').trim().toLowerCase();
+    }
+
+    // ── Build filter checkbox UI ─────────────────────────────────
+    function buildCheckboxGroup(containerId, field, options) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      options.forEach(function(opt) {
+        const label = document.createElement('label');
+        label.className = 'filter-option';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'filter-cb';
+        cb.dataset.field = field;
+        cb.dataset.norm  = opt.normVal;
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(' ' + opt.display));
+        container.appendChild(label);
+      });
+      const details = container.closest('details');
+      if (details) {
+        if (options.length > 5) details.removeAttribute('open');
+        else details.setAttribute('open', '');
+      }
+    }
+
+    function buildFilterUI() {
+      const items = Array.from(document.querySelectorAll('#item-list .item'));
+
+      // Location
+      (function() {
+        const seen = new Map();
+        let hasEmpty = false;
+        items.forEach(function(item) {
+          const raw = item.dataset.location || '';
+          if (!raw.trim()) { hasEmpty = true; return; }
+          const n = norm(raw);
+          if (!seen.has(n)) seen.set(n, raw);
+        });
+        const opts = [];
+        if (hasEmpty) opts.push({ normVal: '', display: '(empty)' });
+        Array.from(seen.entries())
+          .sort(function(a, b) { return a[0].localeCompare(b[0]); })
+          .forEach(function(e) { opts.push({ normVal: e[0], display: e[1] }); });
+        buildCheckboxGroup('fo-location', 'location', opts);
+      }());
+
+      // Priority (fixed labels, only show values present in list)
+      (function() {
+        const priLabels = { '1': 'High', '2': 'Medium', '3': 'Low' };
+        const present = new Set();
+        let hasEmpty = false;
+        items.forEach(function(item) {
+          const p = (item.dataset.priority || '').trim();
+          if (!p) hasEmpty = true; else present.add(p);
+        });
+        const opts = [];
+        ['1', '2', '3'].forEach(function(p) {
+          if (present.has(p)) opts.push({ normVal: p, display: priLabels[p] });
+        });
+        if (hasEmpty) opts.push({ normVal: '', display: '(empty)' });
+        buildCheckboxGroup('fo-priority', 'priority', opts);
+      }());
+
+      // Added by
+      (function() {
+        const seen = new Map();
+        let hasEmpty = false;
+        items.forEach(function(item) {
+          const raw = item.dataset.addedBy || '';
+          if (!raw.trim()) { hasEmpty = true; return; }
+          const n = norm(raw);
+          if (!seen.has(n)) seen.set(n, raw);
+        });
+        const opts = [];
+        if (hasEmpty) opts.push({ normVal: '', display: '(empty)' });
+        Array.from(seen.entries())
+          .sort(function(a, b) { return a[0].localeCompare(b[0]); })
+          .forEach(function(e) { opts.push({ normVal: e[0], display: e[1] }); });
+        buildCheckboxGroup('fo-added-by', 'addedBy', opts);
+      }());
+    }
+
     // ── Client-side filtering ────────────────────────────────────
     function applyFilters() {
-      const locationFilter = document.getElementById('filter-location').value;
-      const priorityFilter = document.getElementById('filter-priority').value;
-      const addedByFilter  = document.getElementById('filter-added-by').value;
+      function checkedSet(field) {
+        return new Set(
+          Array.from(document.querySelectorAll('.filter-cb[data-field="' + field + '"]:checked'))
+               .map(function(cb) { return cb.dataset.norm; })
+        );
+      }
+      const locSet = checkedSet('location');
+      const priSet = checkedSet('priority');
+      const bySet  = checkedSet('addedBy');
 
       document.querySelectorAll('#item-list .item').forEach(function(item) {
-        const matchLocation = !locationFilter || item.dataset.location === locationFilter;
-        const matchPriority = !priorityFilter || item.dataset.priority === priorityFilter;
-        const matchAddedBy  = !addedByFilter  || item.dataset.addedBy  === addedByFilter;
-        item.hidden = !(matchLocation && matchPriority && matchAddedBy);
+        const matchLoc = locSet.size === 0 || locSet.has(norm(item.dataset.location || ''));
+        const matchPri = priSet.size === 0 || priSet.has((item.dataset.priority || '').trim());
+        const matchBy  = bySet.size  === 0 || bySet.has(norm(item.dataset.addedBy  || ''));
+        item.hidden = !(matchLoc && matchPri && matchBy);
       });
     }
 
     // ── Sort state ───────────────────────────────────────────────
 
     function saveFilterState() {
+      function checkedNorms(field) {
+        return Array.from(document.querySelectorAll('.filter-cb[data-field="' + field + '"]:checked'))
+                    .map(function(cb) { return cb.dataset.norm; });
+      }
       sessionStorage.setItem('grocheries_filters', JSON.stringify({
-        location:  document.getElementById('filter-location').value,
-        priority:  document.getElementById('filter-priority').value,
-        addedBy:   document.getElementById('filter-added-by').value,
+        location:  checkedNorms('location'),
+        priority:  checkedNorms('priority'),
+        addedBy:   checkedNorms('addedBy'),
         sortField: window.grocheries.sortField,
         sortDir:   window.grocheries.sortDir,
       }));
@@ -195,13 +280,18 @@
       if (!stored) return;
       try {
         const state = JSON.parse(stored);
-        document.getElementById('filter-location').value = state.location || '';
-        document.getElementById('filter-priority').value = state.priority || '';
-        document.getElementById('filter-added-by').value = state.addedBy || '';
+        function restoreField(field, values) {
+          if (!Array.isArray(values) || values.length === 0) return;
+          const norms = new Set(values);
+          document.querySelectorAll('.filter-cb[data-field="' + field + '"]').forEach(function(cb) {
+            cb.checked = norms.has(cb.dataset.norm);
+          });
+        }
+        restoreField('location', state.location);
+        restoreField('priority', state.priority);
+        restoreField('addedBy',  state.addedBy);
         window.grocheries.sortField = state.sortField || 'priority';
         window.grocheries.sortDir   = state.sortDir   || 'asc';
-        applyFilters();
-        sortItems();
       } catch (_) {}
     }
 
@@ -264,13 +354,18 @@
     // ── Filter & sort event listeners ────────────────────────────
     // Attached directly (script is at end of body, DOM is ready) so that
     // they are re-bound when HTMX re-executes the script after a body swap.
-    document.getElementById('filter-location').addEventListener('change', function() { applyFilters(); saveFilterState(); });
-    document.getElementById('filter-priority').addEventListener('change', function() { applyFilters(); saveFilterState(); });
-    document.getElementById('filter-added-by').addEventListener('change', function() { applyFilters(); saveFilterState(); });
+    document.querySelector('.filters').addEventListener('change', function(event) {
+      if (event.target.matches('.filter-cb')) {
+        applyFilters();
+        saveFilterState();
+      }
+    });
     document.querySelectorAll('.sort-btn').forEach(function(btn) {
       btn.addEventListener('click', handleSortClick);
     });
+    buildFilterUI();
     restoreFilterState();
+    applyFilters();
     sortItems();
 
     // ── Persist filters across add-item form submission ──────────
@@ -279,10 +374,11 @@
     // ── Persist filters across HTMX body swaps ───────────────────
     document.addEventListener('htmx:beforeRequest', saveFilterState);
     document.addEventListener('htmx:afterSwap', function() {
+      buildFilterUI();
       restoreFilterState();
       applyFilters();
+      sortItems();
     });
-    document.addEventListener('htmx:afterSwap', sortItems);
 
     // ── Per-tab identity for WebSocket dedup ─────────────────────
     if (!window.grocheries.tabId) {

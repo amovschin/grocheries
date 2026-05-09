@@ -38,24 +38,70 @@ body {
 
 /* ── Filters ───────────────────────────────────────────────────── */
 .filters {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
   background: #fff;
   border-bottom: 1px solid #e0e0e0;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
 }
 
-.filter-select {
-  flex-shrink: 0;
-  font-size: 0.875rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #ccc;
+.filter-group {
+  border: 1px solid #e0e0e0;
   border-radius: 0.375rem;
+}
+
+.filter-group__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #444;
+  padding: 0.4rem 0.625rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  list-style: none;
+}
+
+.filter-group__label::-webkit-details-marker { display: none; }
+
+.filter-group[open] > .filter-group__label::after     { content: ' ▲'; font-size: 0.6rem; color: #999; }
+.filter-group:not([open]) > .filter-group__label::after { content: ' ▼'; font-size: 0.6rem; color: #999; }
+
+.filter-group__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.375rem 0.625rem 0.5rem;
+}
+
+.filter-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  user-select: none;
   background: #fff;
-  color: #1a1a1a;
-  min-height: 2.5rem;
+  color: #555;
+}
+
+.filter-option input[type="checkbox"] {
+  width: 0.875rem;
+  height: 0.875rem;
+  accent-color: #2d6a4f;
+  cursor: pointer;
+}
+
+.filter-option:has(input:checked) {
+  background: #e8f4f0;
+  border-color: #2d6a4f;
+  color: #2d6a4f;
+  font-weight: 600;
 }
 
 /* ── Sort bar ──────────────────────────────────────────────────── */
@@ -291,7 +337,8 @@ body {
     margin-right: auto;
   }
 
-  .filters { border-radius: 0.5rem; margin-top: 0.75rem; border: 1px solid #e0e0e0; }
+  .filters { border-radius: 0.5rem; margin-top: 0.75rem; border: 1px solid #e0e0e0; flex-direction: row; align-items: flex-start; flex-wrap: wrap; }
+  .filter-group { flex: 1; min-width: 150px; }
 
   .page-header { padding: 1rem; }
   .page-header h1 { font-size: 1.5rem; }
