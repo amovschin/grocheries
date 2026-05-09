@@ -123,7 +123,7 @@ async def add_item(
     list_id: str,
     name: str = Form(...),
     location: str = Form(default=""),
-    quantity_raw: str = Form(default=""),
+    quantity_raw: str = Form(default="", alias="quantity"),
     comment: str = Form(default=""),
     added_by: str = Form(default=""),
     priority_raw: str = Form(default=""),
