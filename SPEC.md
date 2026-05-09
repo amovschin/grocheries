@@ -80,8 +80,17 @@ Filters remain active after item toggle/check operations.
 
 ### Sorting
 Users can sort items by: name, date added, location, priority.
-Default sort: priority ascending, checked items last.
+Each sort criterion has an intuitive default direction:
+- name: A → Z
+- date added: newest first
+- location: A → Z
+- priority: High → Low (1 → 3)
+
+Users can toggle the sort direction (ascending/descending) 
+for any criterion by clicking the active sort button again.
+Checked items always appear last regardless of sort.
 Sorting is client-side.
+Default sort: priority ascending (High first), checked items last.
 
 ### Real-time
 - WebSocket connection to `/ws/{list_id}` on page load

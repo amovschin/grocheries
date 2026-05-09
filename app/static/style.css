@@ -58,6 +58,36 @@ body {
   min-height: 2.5rem;
 }
 
+/* ── Sort bar ──────────────────────────────────────────────────── */
+.sort-bar {
+  display: flex;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sort-btn {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #ccc;
+  border-radius: 0.375rem;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 2.25rem;
+}
+
+.sort-btn--active {
+  background: #2d6a4f;
+  color: #fff;
+  border-color: #2d6a4f;
+}
+
 /* ── Item list ─────────────────────────────────────────────────── */
 .item-list {
   list-style: none;

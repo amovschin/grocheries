@@ -38,14 +38,25 @@
         <option value="{{ person }}">{{ person }}</option>
       {% endfor %}
     </select>
+
   </section>
+
+  {# ── Sort bar ──────────────────────────────────────────────── #}
+  <div class="sort-bar" role="group" aria-label="Sort by">
+    <button class="sort-btn" data-field="name"     data-label="Name"     type="button">Name</button>
+    <button class="sort-btn" data-field="date"     data-label="Date"     type="button">Date</button>
+    <button class="sort-btn" data-field="location" data-label="Location" type="button">Location</button>
+    <button class="sort-btn" data-field="priority" data-label="Priority" type="button">Priority</button>
+  </div>
 
   {# ── Item list ─────────────────────────────────────────────── #}
   <ul class="item-list" id="item-list">
-    {% for item in items | sort(attribute='priority', reverse=False) | sort(attribute='checked', reverse=False) %}
+    {% for item in items %}
     <li class="item{% if item.checked %} item--checked{% endif %}"
+        data-name="{{ item.name }}"
+        data-date="{{ item.created_at.timestamp() }}"
         data-location="{{ item.location or '' }}"
-        data-priority="{{ item.priority or '' }}"
+        data-priority="{{ item.priority if item.priority is not none else '' }}"
         data-added-by="{{ item.added_by or '' }}">
 
       <div class="item__body">
@@ -58,7 +69,7 @@
           {% if item.location %}
             <span class="item__tag item__tag--location">{{ item.location }}</span>
           {% endif %}
-          {% if item.priority %}
+          {% if item.priority is not none %}
             <span class="item__tag item__tag--priority item__tag--priority-{{ item.priority }}">
               {% if item.priority == 1 %}High{% elif item.priority == 2 %}Medium{% else %}Low{% endif %}
             </span>
@@ -127,7 +138,7 @@
         </div>
         <div class="form-group">
           <label for="priority" class="form-label">Priority</label>
-          <select id="priority" name="priority" class="form-input">
+          <select id="priority" name="priority_raw" class="form-input">
             <option value="">— none —</option>
             <option value="1">High</option>
             <option value="2">Medium</option>
@@ -161,11 +172,18 @@
       });
     }
 
+    // ── Sort state ───────────────────────────────────────────────
+    let sortField = 'priority';
+    let sortDir   = 'asc';
+    const SORT_DEFAULTS = { name: 'asc', date: 'desc', location: 'asc', priority: 'asc' };
+
     function saveFilterState() {
       sessionStorage.setItem('grocheries_filters', JSON.stringify({
-        location: document.getElementById('filter-location').value,
-        priority: document.getElementById('filter-priority').value,
-        addedBy: document.getElementById('filter-added-by').value,
+        location:  document.getElementById('filter-location').value,
+        priority:  document.getElementById('filter-priority').value,
+        addedBy:   document.getElementById('filter-added-by').value,
+        sortField: sortField,
+        sortDir:   sortDir,
       }));
       sessionStorage.setItem('grocheries_filters_pending', '1');
     }
@@ -180,17 +198,79 @@
         document.getElementById('filter-location').value = state.location || '';
         document.getElementById('filter-priority').value = state.priority || '';
         document.getElementById('filter-added-by').value = state.addedBy || '';
+        sortField = state.sortField || 'priority';
+        sortDir   = state.sortDir   || 'asc';
         applyFilters();
+        sortItems();
       } catch (_) {}
     }
 
-    // ── Filter event listeners ───────────────────────────────────
+    // ── Client-side sorting ──────────────────────────────────────
+    function updateSortButtons() {
+      document.querySelectorAll('.sort-btn').forEach(function(btn) {
+        const active = btn.dataset.field === sortField;
+        btn.classList.toggle('sort-btn--active', active);
+        btn.textContent = btn.dataset.label + (active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '');
+      });
+    }
+
+    function sortItems() {
+      const list     = document.getElementById('item-list');
+      const allItems = Array.from(list.querySelectorAll('.item'));
+      const dir      = sortDir === 'asc' ? 1 : -1;
+
+      allItems.sort(function(a, b) {
+        const aChecked = a.classList.contains('item--checked') ? 1 : 0;
+        const bChecked = b.classList.contains('item--checked') ? 1 : 0;
+        if (aChecked !== bChecked) return aChecked - bChecked;
+
+        let cmp = 0;
+        if (sortField === 'name') {
+          cmp = a.dataset.name.toLowerCase().localeCompare(b.dataset.name.toLowerCase());
+        } else if (sortField === 'date') {
+          cmp = parseFloat(a.dataset.date) - parseFloat(b.dataset.date);
+        } else if (sortField === 'location') {
+          const aLoc = a.dataset.location.toLowerCase();
+          const bLoc = b.dataset.location.toLowerCase();
+          if (!aLoc && bLoc) return 1;
+          if (aLoc && !bLoc) return -1;
+          cmp = aLoc.localeCompare(bLoc);
+        } else {
+          const aPri = a.dataset.priority !== '' ? parseInt(a.dataset.priority, 10) : 999;
+          const bPri = b.dataset.priority !== '' ? parseInt(b.dataset.priority, 10) : 999;
+          if (aPri === 999 && bPri !== 999) return 1;
+          if (aPri !== 999 && bPri === 999) return -1;
+          cmp = aPri - bPri;
+        }
+        return dir * cmp;
+      });
+
+      allItems.forEach(function(item) { list.appendChild(item); });
+      updateSortButtons();
+    }
+
+    function handleSortClick(event) {
+      const field = event.currentTarget.dataset.field;
+      if (field === sortField) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortField = field;
+        sortDir   = SORT_DEFAULTS[field];
+      }
+      sortItems();
+    }
+
+    // ── Filter & sort event listeners ────────────────────────────
     // Attached directly (script is at end of body, DOM is ready) so that
     // they are re-bound when HTMX re-executes the script after a body swap.
     document.getElementById('filter-location').addEventListener('change', applyFilters);
     document.getElementById('filter-priority').addEventListener('change', applyFilters);
     document.getElementById('filter-added-by').addEventListener('change', applyFilters);
+    document.querySelectorAll('.sort-btn').forEach(function(btn) {
+      btn.addEventListener('click', handleSortClick);
+    });
     restoreFilterState();
+    sortItems();
 
     // ── Persist filters across add-item form submission ──────────
     document.querySelector('.add-form').addEventListener('submit', saveFilterState);
@@ -201,6 +281,7 @@
       restoreFilterState();
       applyFilters();
     });
+    document.addEventListener('htmx:afterSwap', sortItems);
 
     // ── Per-tab identity for WebSocket dedup ─────────────────────
     const tabId = (function() {
